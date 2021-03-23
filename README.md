@@ -23,3 +23,23 @@ eg. "Hard hitting hop forward with pine persistent throughout.  A nice long fini
 - FL = Flavour (out of 10)
 
 This is a set of scripts designed to pull the latest checkin from your Untappd account (you'll need an API key from Untappd which is a royal pain to get), parse the output and use the jinja2 template to format it into a youtube video description.  
+
+## Config files:
+
+The scripts require the creation of two config files.  One for Untappd and another for Youtube in the format
+
+### youtubeapiconfig.py
+`youtubeapis = {
+    "apikey": "your youtube api key",
+    "apiversion": "v3",    
+    "apiname": "youtube",
+    "channelid": "your youtube channel id"
+}`
+
+### untappdconfig.py
+`untappdcfg = {
+    "client_id": "your Untappd client id",
+    "client_secret": "your Untappd client secret",
+    "username": "your Untappd username",
+}`
+> You can apply for the above Untappd credentials by creating an application at [Untappd](https://untappd.com/api)
