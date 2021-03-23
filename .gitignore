@@ -1,0 +1,8 @@
+*.json
+*.mp4
+untappdconfig.py
+__pycache__
+*.pickle
+upload-youtube.py
+*.jpg
+youtubeapiconfig.py

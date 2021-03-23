@@ -1,0 +1,37 @@
+{{ b.beer_name }} by {{ b.brewery_name }} | {{ b.beer_style }}  | Beer Review
+
+Beer: {{ b.beer_name }}
+Brewery: {{ b.brewery_name }}
+Brewery Location: {{ b.brewery_city }},{{ b.country_name }}
+Brewery URL: {{ b.url }}
+Brewery Twitter: {{ b.twitter }}
+Beer Type: {{ b.beer_style }} 
+Percentage: {{ b.beer_abv }}%
+Hops: {{ b.beer_hops }} 
+Malt: {{ b.beer_malts }} 
+Yeast: {{ b.beer_yeast }} 
+Adjuncts: {{ b.beer_adjuncts }} 
+
+From the brewer: " {{ b.beer_description }} "
+
+BeerNative: {{ b.checkin_comment }}
+
+BeerNative TV Scoring
+=================
+
+Packaging: {{ b.packaging }}
+Artwork:  {{ b.artwork }}
+Accuracy: {{ b.accuracy }}
+Uniqueness: {{ b.uniqueness }}
+Flavour: {{ b.flavour }}
+BeerNative Score: {{ b.total_score }}/30
+Untappd Score: {{ b.rating_score }}/5
+Untappd Average: {{ b.overall_score }}/5
+
+BeerNative TV Links
+
+Untappd: https://untappd.com/user/stevegiguere
+Twitter: https://twitter.com/BeerNativeTV
+Facebook: https://www.facebook.com/beernativetv
+Instagram: https://www.instagram.com/beernativetv/
+Web: https://beernative.tv
