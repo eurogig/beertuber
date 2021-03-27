@@ -219,7 +219,7 @@ while True:
     continue
 
 print (request_body)
-exit()
+
 mediaFile = MediaFileUpload(video_file, chunksize=-1, resumable=True)
 
 response_upload = service.videos().insert(
