@@ -4,6 +4,8 @@ This project is rather personal but others might find the code useful as a base 
 
 It was designed to support reviews on my youtube channel called [BeerNative TV](https://www.youtube.com/channel/UCBu7uCQ93XoEdSS9JDVf2uA)
 
+NOTE: The upload of youtube videos using authentication and the google ID of a project which hasn't been approved by Youtube specifically for uploading video will result in the video being private/locked.  To overcome this requirement you'll need to apply for API Client approval [here[(https://support.google.com/youtube/contact/yt_api_form)
+
 The work flow assigned to this is as follows...
 
 1. Record a video of your beer experience in mp4 format.  (Ideally with OBS as it produces an mkv format which remuxes into a perfect mp4 for youtube.
