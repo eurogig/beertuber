@@ -4,6 +4,8 @@ This project is rather personal but others might find the code useful as a base 
 
 It was designed to support reviews on my youtube channel called [BeerNative TV](https://www.youtube.com/channel/UCBu7uCQ93XoEdSS9JDVf2uA)
 
+NOTE: The upload of youtube videos using authentication and the google ID of a project which hasn't been approved by Youtube specifically for uploading video will result in the video being private/locked.  To overcome this requirement you'll need to apply for API Client approval [here[(https://support.google.com/youtube/contact/yt_api_form)
+
 The work flow assigned to this is as follows...
 
 1. Record a video of your beer experience in mp4 format.  (Ideally with OBS as it produces an mkv format which remuxes into a perfect mp4 for youtube.
@@ -23,3 +25,23 @@ eg. "Hard hitting hop forward with pine persistent throughout.  A nice long fini
 - FL = Flavour (out of 10)
 
 This is a set of scripts designed to pull the latest checkin from your Untappd account (you'll need an API key from Untappd which is a royal pain to get), parse the output and use the jinja2 template to format it into a youtube video description.  
+
+## Config files:
+
+The scripts require the creation of two config files.  One for Untappd and another for Youtube in the format
+
+### youtubeapiconfig.py
+`youtubeapis = {
+    "apikey": "your youtube api key",
+    "apiversion": "v3",    
+    "apiname": "youtube",
+    "channelid": "your youtube channel id"
+}`
+
+### untappdconfig.py
+`untappdcfg = {
+    "client_id": "your Untappd client id",
+    "client_secret": "your Untappd client secret",
+    "username": "your Untappd username",
+}`
+> You can apply for the above Untappd credentials by creating an application at [Untappd](https://untappd.com/api)
