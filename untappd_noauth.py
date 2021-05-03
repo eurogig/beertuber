@@ -11,6 +11,7 @@ checkins="/user/checkins/"
 beers="/user/beers/"
 userinfo="/user/info/"
 thepub = "/thepub/local"
+beer="/beer/info/"
 
 # Define a class of untappd for a specific person
 class Untappd:
@@ -36,12 +37,17 @@ class Untappd:
         api_url=untappd_api_v4 + beers + self.user_id + self.api_auth + "&limit=" + str(limit) 
         return self.get_api_json(api_url)
 
+    def get_beer_detail(self, bid):
+        api_url=untappd_api_v4 + beer + "/" + str(bid) + self.api_auth
+        return self.get_api_json(api_url)    
+
     def get_user_info(self):
         api_url=untappd_api_v4 + userinfo + self.user_id + self.api_auth 
         return self.get_api_json(api_url)
 
     def get_api_json(self,url):
         req = requests.get(url)
+        #print(req.headers)
         self.rate_limit = req.headers['X-Ratelimit-Limit']
         self.rate_remaining = req.headers['X-Ratelimit-Remaining']
         req_json = req.json()

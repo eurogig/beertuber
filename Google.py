@@ -5,9 +5,11 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from google.auth.transport.requests import Request
 
-def create_youtube(api_name, api_version, api_key):
+def create_youtube(client_secret_file, api_name, api_version, scopes):
     try:
-        service = build(api_name, api_version, developerKey=api_key)
+        flow = InstalledAppFlow.from_client_secrets_file(client_secret_file, scopes)
+        credentials = flow.run_console()
+        service = build(api_name, api_version, credentials=credentials)
         print(api_name, 'service created successfully')
         return service
     except Exception as e:

@@ -7,6 +7,7 @@ Brewery URL: {{ b.url }}
 Brewery Twitter: {{ b.twitter }}
 Beer Type: {{ b.beer_style }} 
 Percentage: {{ b.beer_abv }}%
+IBU: {{ b.beer_ibu }}
 Hops: {{ b.beer_hops }} 
 Malt: {{ b.beer_malts }} 
 Yeast: {{ b.beer_yeast }} 

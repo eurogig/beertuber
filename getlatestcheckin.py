@@ -10,6 +10,15 @@ from Google import Create_Service
 from Google import create_youtube
 from googleapiclient.http import MediaFileUpload
 import os.path
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+import googleapiclient.errors
+import pandas as pd
+
+# Get the beer types dictionary
+beer_types = pd.read_csv('beertypes.csv', header=None, index_col=0, squeeze=True).to_dict()
 
 # PART 1 : Get the latest checkin from UnTappd
 
@@ -18,17 +27,17 @@ myUntappd=untappd_noauth.Untappd(cfg.untappdcfg["client_id"],cfg.untappdcfg["cli
 
 # Get the details of the last check in to Untappd
 review = myUntappd.get_latest_checkin()
-# Get the extra details of the beer as the checkin only had partial details
-beer = myUntappd.get_latest_beer()
 
 class BeerReview:
 
-    def __init__(self, review, beer):
+    def __init__(self, review):
         self.checkin_comment = review["response"]['checkins']["items"][0]["checkin_comment"]
+        self.checkin_date = review["response"]['checkins']["items"][0]["created_at"]
         self.rating_score = review["response"]['checkins']["items"][0]["rating_score"]
         self.beer_name = review["response"]['checkins']["items"][0]["beer"]["beer_name"]
+        self.bid = review["response"]['checkins']["items"][0]["beer"]["bid"]
         self.beer_style = review["response"]['checkins']["items"][0]["beer"]["beer_style"]
-        self.beer_abv = review["response"]['checkins']["items"][0]["beer"]["beer_abv"]
+        self.beer_abv = review["response"]['checkins']["items"][0]["beer"]["beer_abv"]       
         self.brewery_name = review["response"]['checkins']["items"][0]["brewery"]["brewery_name"]
         self.country_name = review["response"]['checkins']["items"][0]["brewery"]["country_name"]
         self.url = review["response"]['checkins']["items"][0]["brewery"]["contact"]["url"]
@@ -40,10 +49,18 @@ class BeerReview:
         self.brewery_state = review["response"]['checkins']["items"][0]["brewery"]["location"]["brewery_state"]
         if review["response"]['checkins']["items"][0]["media"]["count"] > 0:
             self.photo_img_og = review["response"]['checkins']["items"][0]["media"]["items"][0]["photo"]["photo_img_og"]
-        self.beer_ibu = beer["response"]['beers']["items"][0]["beer"]["beer_ibu"]
-        self.beer_description = beer["response"]['beers']["items"][0]["beer"]["beer_description"]
-        self.rating_count = beer["response"]['beers']["items"][0]["beer"]["rating_count"]
-        self.overall_score = beer["response"]['beers']["items"][0]["beer"]["rating_score"]
+
+        # Get the extra details of the beer as the checkin only had partial details
+        beer = myUntappd.get_beer_detail(self.bid)
+        #print("\n\n BEER")
+        #
+        # 
+        # 
+        # print(beer)
+        self.beer_ibu = beer["response"]["beer"]["beer_ibu"] 
+        self.beer_description = beer["response"]["beer"]["beer_description"]
+        self.rating_count = beer["response"]["beer"]["rating_count"]
+        self.overall_score = beer["response"]["beer"]["rating_score"]
 
     def set_scores(self, scores):
         # 
@@ -89,8 +106,11 @@ def add_video_to_playlist(youtube,videoID,playlistID):
 
 
 
+print ("RAW REVIEW")
 print (review)
-beerreview = BeerReview(review, beer)
+
+
+beerreview = BeerReview(review)
 
 print("Got:\n")
 print(beerreview.beer_name)
@@ -146,14 +166,15 @@ video_description = tm.render(b=beerreview)
 print(video_description)
 
 ###############################################################
-# PART 2 : Push it up to YouTube with the video and thumbnail 
+# PART 2 : Get the latest video ID 
 ###############################################################
 
 CLIENT_SECRET_FILE = 'my_client_secrets.json'
 API_NAME = YTcfg.youtubeapis["apiname"]
 API_VERSION = YTcfg.youtubeapis["apiversion"]
 API_KEY = YTcfg.youtubeapis["apikey"]
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+SCOPES = ['https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.readonly']
+#SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
 PUBLISH_OFFSET = 3 # Hours from now until the video is published to allow for processing
 CATEGORY = 24 # Entertainment
 DEFAULT_TAGS = ['beer' ,'craft beer','beer review','craft beer review','session ale','beernative','beer native','steve giguere','hazy ipa review',beerreview.brewery_name,beerreview.beer_name,beerreview.beer_style]
@@ -161,6 +182,107 @@ TITLE_TEMPLATE = "{{ b.beer_name }} by {{ b.brewery_name }} | {{ b.beer_style }}
 
 # Create the youtube connection.  This might ask you to authenticate using the browser the first time
 service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+
+video_request = service.playlistItems().list(
+        part="snippet",
+        maxResults=1,
+        playlistId="PL2zDI8OYY18rGVGAE4hHvfMJIOGfA5oaJ"
+    )
+video_response = video_request.execute()
+
+video_url  = "https://youtu.be/" + str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
+print(video_url)
+
+
+###############################################################
+# PART 3 : Push it up the spreadsheet that updates the map 
+###############################################################
+CLIENT_SECRET_FILE = 'nice-symbol-285214-26e047279db0.json'
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive',
+    'https://spreadsheets.google.com/feeds'
+]
+
+# authorise against our gcloud account
+credentials = ServiceAccountCredentials.from_json_keyfile_name(CLIENT_SECRET_FILE, SCOPES)
+
+gc = gspread.authorize(credentials)
+
+# Open a worksheet from spreadsheet with one shot
+wks = gc.open("BeerNativeDB")
+#wks = gc.open_by_key("1ifc13yVs8EATsBEkakQ52_7y4K4OS8w2yYJAZvO5rvc")
+
+row = [
+    beerreview.checkin_date,
+    1, #map id hardcoded
+    beerreview.brewery_name + ',' + beerreview.brewery_city + ',' + beerreview.brewery_state + ',' + beerreview.country_name,
+    video_description,
+    beerreview.photo_img_og,
+    video_url,
+    beerreview.lat,
+    beerreview.lng,
+    '',
+    2, #hardcoded vakue for map
+    beerreview.beer_name,
+    '',
+    beer_types[beerreview.beer_style],
+    1,
+    '',
+    '',
+    '',
+    beerreview.beer_style,
+    beerreview.beer_hops,
+    beerreview.beer_malts,
+    beerreview.beer_yeast,
+    beerreview.beer_adjuncts,
+    beerreview.beer_abv,
+    beerreview.beer_ibu,
+    beerreview.accuracy,
+    beerreview.uniqueness,
+    beerreview.artwork,
+    beerreview.packaging,
+    beerreview.flavour,
+    beerreview.total_score,
+    beerreview.rating_score,
+    beerreview.overall_score
+]
+wks.sheet1.append_row(row)
+
+exit()
+
+###############################################################
+# PART 4 : Push it up to YouTube with the video and thumbnail which doesn't current work
+###############################################################
+
+CLIENT_SECRET_FILE = 'my_client_secrets.json'
+API_NAME = YTcfg.youtubeapis["apiname"]
+API_VERSION = YTcfg.youtubeapis["apiversion"]
+API_KEY = YTcfg.youtubeapis["apikey"]
+SCOPES = ['https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.readonly']
+#SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
+PUBLISH_OFFSET = 3 # Hours from now until the video is published to allow for processing
+CATEGORY = 24 # Entertainment
+DEFAULT_TAGS = ['beer' ,'craft beer','beer review','craft beer review','session ale','beernative','beer native','steve giguere','hazy ipa review',beerreview.brewery_name,beerreview.beer_name,beerreview.beer_style]
+TITLE_TEMPLATE = "{{ b.beer_name }} by {{ b.brewery_name }} | {{ b.beer_style }}  | Beer Review"
+
+# Create the youtube connection.  This might ask you to authenticate using the browser the first time
+service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+
+video_request = service.playlistItems().list(
+        part="snippet",
+        maxResults=1,
+        playlistId="PL2zDI8OYY18rGVGAE4hHvfMJIOGfA5oaJ"
+    )
+video_response = video_request.execute()
+
+video_url  = "https://youtu.be/" + str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
+print(video_url)
+
+# Exit here until this app gets approval for youtube upload.  
+# Next step will be the remove the upload but use the video url and id acquired above to auto populate 
+# the description and other video fields in youtube.
+exit()
 
 # Set the publish time to be now + and offset (above) to allow for slow youtube processing
 publish = (datetime.datetime.today() + datetime.timedelta(hours=PUBLISH_OFFSET)).isoformat("T","seconds")  + '.000Z'
@@ -219,7 +341,7 @@ while True:
     continue
 
 print (request_body)
-exit()
+
 mediaFile = MediaFileUpload(video_file, chunksize=-1, resumable=True)
 
 response_upload = service.videos().insert(
