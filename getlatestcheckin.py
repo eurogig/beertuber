@@ -173,7 +173,7 @@ CLIENT_SECRET_FILE = 'my_client_secrets.json'
 API_NAME = YTcfg.youtubeapis["apiname"]
 API_VERSION = YTcfg.youtubeapis["apiversion"]
 API_KEY = YTcfg.youtubeapis["apikey"]
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.readonly']
+SCOPES = ['https://www.googleapis.com/auth/youtube','https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.readonly']
 #SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
 PUBLISH_OFFSET = 3 # Hours from now until the video is published to allow for processing
 CATEGORY = 24 # Entertainment
@@ -190,7 +190,8 @@ video_request = service.playlistItems().list(
     )
 video_response = video_request.execute()
 
-video_url  = "https://youtu.be/" + str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
+video_id  = str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
+video_url  = "https://youtu.be/" + video_id
 print(video_url)
 
 
@@ -249,42 +250,14 @@ row = [
 ]
 wks.sheet1.append_row(row)
 
-exit()
 
 ###############################################################
-# PART 4 : Push it up to YouTube with the video and thumbnail which doesn't current work
+# PART 4 : Push the title & description and meta data up to YouTube with an optional thumbnail 
 ###############################################################
 
-CLIENT_SECRET_FILE = 'my_client_secrets.json'
-API_NAME = YTcfg.youtubeapis["apiname"]
-API_VERSION = YTcfg.youtubeapis["apiversion"]
-API_KEY = YTcfg.youtubeapis["apikey"]
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.readonly']
-#SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
-PUBLISH_OFFSET = 3 # Hours from now until the video is published to allow for processing
-CATEGORY = 24 # Entertainment
-DEFAULT_TAGS = ['beer' ,'craft beer','beer review','craft beer review','session ale','beernative','beer native','steve giguere','hazy ipa review',beerreview.brewery_name,beerreview.beer_name,beerreview.beer_style]
-TITLE_TEMPLATE = "{{ b.beer_name }} by {{ b.brewery_name }} | {{ b.beer_style }}  | Beer Review"
-
-# Create the youtube connection.  This might ask you to authenticate using the browser the first time
-service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
-
-video_request = service.playlistItems().list(
-        part="snippet",
-        maxResults=1,
-        playlistId="PL2zDI8OYY18rGVGAE4hHvfMJIOGfA5oaJ"
-    )
-video_response = video_request.execute()
-
-video_url  = "https://youtu.be/" + str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
-print(video_url)
-
-# Exit here until this app gets approval for youtube upload.  
-# Next step will be the remove the upload but use the video url and id acquired above to auto populate 
-# the description and other video fields in youtube.
-exit()
 
 # Set the publish time to be now + and offset (above) to allow for slow youtube processing
+# The publish date is not used yet in the script
 publish = (datetime.datetime.today() + datetime.timedelta(hours=PUBLISH_OFFSET)).isoformat("T","seconds")  + '.000Z'
 
 titletm = Template(TITLE_TEMPLATE)
@@ -298,67 +271,49 @@ print(publish)
 # Need to add video language and recording date and location
 # Also add title and brewery to the tags 
 request_body = {
+    "id" : video_id,
     'snippet': {
         'categoryId': CATEGORY,
         'title': video_title,
         'description': video_description,
         'tags': DEFAULT_TAGS
-    },
-    'status': {
-        'privacyStatus': 'private',
-        'publishAt': publish,
-        'selfDeclaredMadeForKids': False, 
     }
 }
 
-#read string from user
-while True:
-  try:
-    video_file=input("Enter path to video: ")
-    exists = os.path.isfile(video_file)
-    if exists:
-      print ("Got video!")
-      break
-    else:
-      print ("File doesn't exists... try again")  
-  except ValueError:
-    print("Invalid")
-    continue
 
-MAX_THUMB_SIZE = 1925246
-while True:
-  try:
-    thumbnail_file = input('Enter path to thumbnail: ')
-    exists = os.path.isfile(thumbnail_file)
-    size = (os.stat('thumbnail.jpg').st_size < MAX_THUMB_SIZE)
-    if exists:
-      print ("Got thumb!")
-      break
-    else:
-      print ("thumbnail doesn't exists or is too big... try again")  
-  except ValueError:
-    print("Invalid")
-    continue
+#MAX_THUMB_SIZE = 1925246
+#while True:
+#  try:
+#    thumbnail_file = input('Enter path to thumbnail: ')
+#    exists = os.path.isfile(thumbnail_file)
+#    size = (os.stat('thumbnail.jpg').st_size < MAX_THUMB_SIZE)
+#    if exists:
+#      print ("Got thumb!")
+#      break
+#    else:
+#      print ("thumbnail doesn't exists or is too big... try again")  
+#  except ValueError:
+#    print("Invalid")
+#    continue#
 
 print (request_body)
 
-mediaFile = MediaFileUpload(video_file, chunksize=-1, resumable=True)
-
-response_upload = service.videos().insert(
-    part='snippet,status',
-    body=request_body,
-    media_body=mediaFile
+response_upload = service.videos().update(
+#    part='snippet,status',
+    part='snippet',
+    body=request_body
 ).execute()
 
+print(response_upload)
 
-service.thumbnails().set(
-    videoId=response_upload.get('id'),
-    media_body=MediaFileUpload(thumbnail_file)
-).execute()
+#service.thumbnails().set(
+#    videoId=response_upload.get('id'),
+#    media_body=MediaFileUpload(thumbnail_file)
+#).execute()
 
-print("Your new video is at https://youtu.be/" + str(response_upload.get('id')))
+exit()
 
-#Get New Service for playlists Not tried below this yet
+# Eventually add the platlist chooser
 service = create_youtube(API_NAME, API_VERSION, API_KEY)
 
 print("Getting playlists...")
