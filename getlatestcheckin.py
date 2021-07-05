@@ -1,21 +1,26 @@
-import requests
 import inquirer
 import untappd_noauth
-import untappdconfig as cfg
-import youtubeapiconfig as YTcfg
+
 from jinja2 import Template
 import json
 import datetime
 from Google import Create_Service
 from Google import create_youtube
 from googleapiclient.http import MediaFileUpload
-import os.path
+import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import googleapiclient.errors
+
 import pandas as pd
+
+# Get secrets from env variables
+UNTAPPD_CLIENT_ID=os.getenv('UNTAPPD_CLIENT_ID')
+UNTAPPD_CLIENT_SECRET=os.getenv('UNTAPPD_CLIENT_SECRET')
+UNTAPPD_USER=os.getenv('UNTAPPD_USER')
+
+YT_CHANNEL_ID=os.getenv('YT_CHANNEL_ID')
+YT_APIKEY=os.getenv('YT_APIKEY')
+YT_PLAYLIST=os.getenv('YT_PLAYLIST')
 
 # Get the beer types dictionary
 beer_types = pd.read_csv('beertypes.csv', header=None, index_col=0, squeeze=True).to_dict()
@@ -23,7 +28,7 @@ beer_types = pd.read_csv('beertypes.csv', header=None, index_col=0, squeeze=True
 # PART 1 : Get the latest checkin from UnTappd
 
 # Create the Untappd connection
-myUntappd=untappd_noauth.Untappd(cfg.untappdcfg["client_id"],cfg.untappdcfg["client_secret"],cfg.untappdcfg["username"])
+myUntappd=untappd_noauth.Untappd(UNTAPPD_CLIENT_ID,UNTAPPD_CLIENT_SECRET,UNTAPPD_USER)
 
 # Get the details of the last check in to Untappd
 review = myUntappd.get_latest_checkin()
@@ -170,9 +175,8 @@ print(video_description)
 ###############################################################
 
 CLIENT_SECRET_FILE = 'my_client_secrets.json'
-API_NAME = YTcfg.youtubeapis["apiname"]
-API_VERSION = YTcfg.youtubeapis["apiversion"]
-API_KEY = YTcfg.youtubeapis["apikey"]
+API_NAME = "youtube"
+API_VERSION = "v3"
 SCOPES = ['https://www.googleapis.com/auth/youtube','https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.readonly']
 #SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
 PUBLISH_OFFSET = 3 # Hours from now until the video is published to allow for processing
@@ -186,7 +190,7 @@ service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
 video_request = service.playlistItems().list(
         part="snippet",
         maxResults=1,
-        playlistId="PL2zDI8OYY18rGVGAE4hHvfMJIOGfA5oaJ"
+        playlistId=YT_PLAYLIST
     )
 video_response = video_request.execute()
 
@@ -212,7 +216,6 @@ gc = gspread.authorize(credentials)
 
 # Open a worksheet from spreadsheet with one shot
 wks = gc.open("BeerNativeDB")
-#wks = gc.open_by_key("1ifc13yVs8EATsBEkakQ52_7y4K4OS8w2yYJAZvO5rvc")
 
 row = [
     beerreview.checkin_date,
@@ -314,12 +317,12 @@ print(response_upload)
 exit()
 
 # Eventually add the platlist chooser
-service = create_youtube(API_NAME, API_VERSION, API_KEY)
+service = create_youtube(API_NAME, API_VERSION, YT_APIKEY)
 
 print("Getting playlists...")
 playlists = service.playlists().list (
     part="contentDetails, snippet",
-    channelId=YTcfg.youtubeapis["channelid"],
+    channelId=YT_CHANNEL_ID,
     maxResults=50
 ).execute()
 
