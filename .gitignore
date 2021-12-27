@@ -6,3 +6,5 @@ __pycache__
 upload-youtube.py
 *.jpg
 youtubeapiconfig.py
+.env
+setenv.sh

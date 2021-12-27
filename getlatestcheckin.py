@@ -187,17 +187,23 @@ TITLE_TEMPLATE = "{{ b.beer_name }} by {{ b.brewery_name }} | {{ b.beer_style }}
 # Create the youtube connection.  This might ask you to authenticate using the browser the first time
 service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
 
-video_request = service.playlistItems().list(
-        part="snippet",
-        maxResults=1,
-        playlistId=YT_PLAYLIST
-    )
-video_response = video_request.execute()
+while True:
+    video_request = service.playlistItems().list(
+            part="snippet",
+            maxResults=1,
+            playlistId=YT_PLAYLIST
+        )
+    video_response = video_request.execute()
 
-video_id  = str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
-video_url  = "https://youtu.be/" + video_id
-print(video_url)
+    video_id  = str(video_response["items"][0]["snippet"]["resourceId"]["videoId"])
+    video_title  = str(video_response["items"][0]["snippet"]["title"])
+    video_url  = "https://youtu.be/" + video_id
+    print(video_title)
+    print(video_url)
 
+    word = input("Is this the correct video?  If not add the new video to the Beer Reviews playlist and type 'N' to retry (Y/N) [Y]):")
+    if word != "N":
+        break
 
 ###############################################################
 # PART 3 : Push it up the spreadsheet that updates the map 
@@ -264,7 +270,7 @@ wks.sheet1.append_row(row)
 publish = (datetime.datetime.today() + datetime.timedelta(hours=PUBLISH_OFFSET)).isoformat("T","seconds")  + '.000Z'
 
 titletm = Template(TITLE_TEMPLATE)
-video_title = titletm.render(b=beerreview)
+video_title = titletm.render(b=beerreview) [0:99]
 
 print(video_title)
 print("Publishing set to:")
